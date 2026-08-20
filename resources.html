@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resources | Sinthanai Selvan — Biostatistics Tools</title>
+<meta name="description" content="Free biostatistics resources: presentation slides, a sample size &amp; power calculator, and a basic statistics calculator for research and teaching.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a1a30'/%3E%3Ctext x='50' y='68' font-size='58' font-family='sans-serif' font-weight='700' fill='%2335c9b4' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand"><span class="dot"></span> Sinthanai Selvan</a>
+    <button class="nav-burger" id="navBurger" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#about">About</a></li>
+      <li><a href="index.html#experience">Experience</a></li>
+      <li><a href="index.html#publications">Publications</a></li>
+      <li><a href="resources.html" class="active">Resources</a></li>
+      <li><a href="assets/cv/Sinthanai_Selvan_CV.pdf" class="cta" target="_blank" rel="noopener">Résumé / CV</a></li>
+    </ul>
+  </nav>
+</header>
+
+<section class="resource-hero">
+  <div class="container">
+    <span class="eyebrow" style="justify-content:center;display:inline-flex;">Free &amp; Open</span>
+    <h1>Biostatistics Resources</h1>
+    <p>Presentation slides, and two interactive tools for study design and everyday data analysis — sample size &amp; power calculator, and a basic statistics calculator.</p>
+    <div class="res-nav">
+      <a href="#ppts">📊 Presentations</a>
+      <a href="#sample-size">🧮 Sample Size &amp; Power</a>
+      <a href="#stats-calc">📈 Statistics Calculator</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PPTS ================= -->
+<section id="ppts" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="tag">Slides</span>
+      <h2>Presentations &amp; Teaching Material</h2>
+      <p>Slide decks from workshops and training sessions on biostatistics, epidemiology, and study design.</p>
+    </div>
+
+    <div class="ppt-grid" id="pptGrid">
+      <!-- Example card (duplicate this block for each new PPT, or drop files in assets/ppts/ — see note below) -->
+    </div>
+
+    <div class="empty-state" id="pptEmptyState">
+      <h3>Slides coming soon</h3>
+      <p>Presentation decks will be added here shortly. To add one yourself: drop the <code>.pptx</code>/<code>.pdf</code> file into <code>assets/ppts/</code> in the repo, then add a matching card in <code>resources.html</code> (see the comment in the source).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SAMPLE SIZE & POWER ================= -->
+<section id="sample-size" class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="tag">Study Design</span>
+      <h2>Sample Size &amp; Power Calculator</h2>
+      <p>Basic z‑approximation formulas for common study designs. For complex or adaptive designs, consult a biostatistician before finalising your protocol.</p>
+    </div>
+
+    <div class="tool-tabs" data-tabgroup="ss-main">
+      <button class="tool-tab active" data-tab="ss-panel">Sample Size</button>
+      <button class="tool-tab" data-tab="pw-panel">Power</button>
+    </div>
+
+    <!-- ---- SAMPLE SIZE PANEL ---- -->
+    <div class="tool-panel active" id="ss-panel">
+      <div class="sub-tabs" data-subgroup="ss-mode">
+        <button class="sub-tab active" data-mode="ss-prop1">Single Proportion</button>
+        <button class="sub-tab" data-mode="ss-prop2">Two Proportions</button>
+        <button class="sub-tab" data-mode="ss-mean2">Two Means</button>
+        <button class="sub-tab" data-mode="ss-mean1">Single Mean</button>
+      </div>
+
+      <!-- Single proportion -->
+      <div class="calc-mode active" id="ss-prop1">
+        <div class="form-grid">
+          <div class="field">
+            <label>Expected proportion (p) <span class="hint">0–1</span></label>
+            <input type="number" id="ssP1_p" value="0.5" step="0.01" min="0.001" max="0.999">
+          </div>
+          <div class="field">
+            <label>Margin of error (d) <span class="hint">0–1</span></label>
+            <input type="number" id="ssP1_d" value="0.05" step="0.01" min="0.001" max="0.5">
+          </div>
+          <div class="field">
+            <label>Confidence level</label>
+            <select id="ssP1_conf">
+              <option value="0.90">90%</option>
+              <option value="0.95" selected>95%</option>
+              <option value="0.99">99%</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Population size <span class="hint">optional, for finite population correction</span></label>
+            <input type="number" id="ssP1_N" placeholder="Leave blank if unknown / large">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcSSProp1()">Calculate Sample Size</button>
+        <div class="result-box hidden" id="ssP1_result"></div>
+        <p class="formula-note">n = z² · p(1−p) / d² &nbsp;(with finite population correction if N is provided)</p>
+      </div>
+
+      <!-- Two proportions -->
+      <div class="calc-mode" id="ss-prop2">
+        <div class="form-grid">
+          <div class="field"><label>Group 1 proportion (p₁)</label><input type="number" id="ssP2_p1" value="0.4" step="0.01" min="0.001" max="0.999"></div>
+          <div class="field"><label>Group 2 proportion (p₂)</label><input type="number" id="ssP2_p2" value="0.25" step="0.01" min="0.001" max="0.999"></div>
+          <div class="field">
+            <label>Significance level (α)</label>
+            <select id="ssP2_alpha">
+              <option value="0.10">0.10</option>
+              <option value="0.05" selected>0.05</option>
+              <option value="0.01">0.01</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Power (1−β)</label>
+            <select id="ssP2_power">
+              <option value="0.80" selected>80%</option>
+              <option value="0.90">90%</option>
+              <option value="0.95">95%</option>
+            </select>
+          </div>
+          <div class="field"><label>Allocation ratio (n₂/n₁)</label><input type="number" id="ssP2_ratio" value="1" step="0.1" min="0.1"></div>
+        </div>
+        <button class="btn btn-primary" onclick="calcSSProp2()">Calculate Sample Size</button>
+        <div class="result-box hidden" id="ssP2_result"></div>
+        <p class="formula-note">Two‑sided z‑test for two independent proportions (normal approximation).</p>
+      </div>
+
+      <!-- Two means -->
+      <div class="calc-mode" id="ss-mean2">
+        <div class="form-grid">
+          <div class="field"><label>Mean difference to detect (Δ)</label><input type="number" id="ssM2_delta" value="5" step="0.1"></div>
+          <div class="field"><label>Pooled standard deviation (SD)</label><input type="number" id="ssM2_sd" value="10" step="0.1" min="0.001"></div>
+          <div class="field">
+            <label>Significance level (α)</label>
+            <select id="ssM2_alpha">
+              <option value="0.10">0.10</option>
+              <option value="0.05" selected>0.05</option>
+              <option value="0.01">0.01</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Power (1−β)</label>
+            <select id="ssM2_power">
+              <option value="0.80" selected>80%</option>
+              <option value="0.90">90%</option>
+              <option value="0.95">95%</option>
+            </select>
+          </div>
+          <div class="field"><label>Allocation ratio (n₂/n₁)</label><input type="number" id="ssM2_ratio" value="1" step="0.1" min="0.1"></div>
+        </div>
+        <button class="btn btn-primary" onclick="calcSSMean2()">Calculate Sample Size</button>
+        <div class="result-box hidden" id="ssM2_result"></div>
+        <p class="formula-note">Two‑sided z‑test for the difference between two independent means.</p>
+      </div>
+
+      <!-- Single mean -->
+      <div class="calc-mode" id="ss-mean1">
+        <div class="form-grid">
+          <div class="field"><label>Expected standard deviation (SD)</label><input type="number" id="ssM1_sd" value="10" step="0.1" min="0.001"></div>
+          <div class="field"><label>Margin of error (E)</label><input type="number" id="ssM1_e" value="2" step="0.1" min="0.001"></div>
+          <div class="field">
+            <label>Confidence level</label>
+            <select id="ssM1_conf">
+              <option value="0.90">90%</option>
+              <option value="0.95" selected>95%</option>
+              <option value="0.99">99%</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcSSMean1()">Calculate Sample Size</button>
+        <div class="result-box hidden" id="ssM1_result"></div>
+        <p class="formula-note">n = (z · SD / E)²</p>
+      </div>
+    </div>
+
+    <!-- ---- POWER PANEL ---- -->
+    <div class="tool-panel" id="pw-panel">
+      <div class="sub-tabs" data-subgroup="pw-mode">
+        <button class="sub-tab active" data-mode="pw-prop2">Two Proportions</button>
+        <button class="sub-tab" data-mode="pw-mean2">Two Means</button>
+      </div>
+
+      <div class="calc-mode active" id="pw-prop2">
+        <div class="form-grid">
+          <div class="field"><label>Group 1 proportion (p₁)</label><input type="number" id="pwP2_p1" value="0.4" step="0.01" min="0.001" max="0.999"></div>
+          <div class="field"><label>Group 2 proportion (p₂)</label><input type="number" id="pwP2_p2" value="0.25" step="0.01" min="0.001" max="0.999"></div>
+          <div class="field"><label>Sample size per group (n)</label><input type="number" id="pwP2_n" value="100" step="1" min="2"></div>
+          <div class="field">
+            <label>Significance level (α)</label>
+            <select id="pwP2_alpha">
+              <option value="0.10">0.10</option>
+              <option value="0.05" selected>0.05</option>
+              <option value="0.01">0.01</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcPowerProp2()">Calculate Power</button>
+        <div class="result-box hidden" id="pwP2_result"></div>
+      </div>
+
+      <div class="calc-mode" id="pw-mean2">
+        <div class="form-grid">
+          <div class="field"><label>Mean difference (Δ)</label><input type="number" id="pwM2_delta" value="5" step="0.1"></div>
+          <div class="field"><label>Pooled SD</label><input type="number" id="pwM2_sd" value="10" step="0.1" min="0.001"></div>
+          <div class="field"><label>Sample size per group (n)</label><input type="number" id="pwM2_n" value="50" step="1" min="2"></div>
+          <div class="field">
+            <label>Significance level (α)</label>
+            <select id="pwM2_alpha">
+              <option value="0.10">0.10</option>
+              <option value="0.05" selected>0.05</option>
+              <option value="0.01">0.01</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcPowerMean2()">Calculate Power</button>
+        <div class="result-box hidden" id="pwM2_result"></div>
+      </div>
+    </div>
+
+    <p class="disclaimer">These calculators use standard normal (z) approximations intended for planning and teaching purposes — always confirm with exact methods / statistical software before finalising a protocol.</p>
+  </div>
+</section>
+
+<!-- ================= STATISTICS CALCULATOR ================= -->
+<section id="stats-calc" class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="tag">Data Analysis</span>
+      <h2>Basic Statistics Calculator</h2>
+      <p>Paste a list of numbers to get descriptive statistics, or run a quick t‑test / chi‑square test.</p>
+    </div>
+
+    <div class="tool-tabs" data-tabgroup="sc-main">
+      <button class="tool-tab active" data-tab="sc-desc">Descriptive Stats</button>
+      <button class="tool-tab" data-tab="sc-ttest">t‑test</button>
+      <button class="tool-tab" data-tab="sc-chi">Chi‑square (2×2)</button>
+    </div>
+
+    <!-- Descriptive statistics -->
+    <div class="tool-panel active" id="sc-desc">
+      <div class="field" style="margin-bottom:18px;">
+        <label>Data values <span class="hint">comma, space, or newline separated</span></label>
+        <textarea id="descInput" placeholder="e.g. 12, 15, 14, 10, 18, 21, 9, 16">23, 19, 25, 31, 27, 22, 29, 18, 24, 26</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="calcDescriptive()">Compute Statistics</button>
+      <div class="result-box hidden" id="descResult">
+        <div class="stat-results-grid" id="descGrid"></div>
+      </div>
+    </div>
+
+    <!-- t-test -->
+    <div class="tool-panel" id="sc-ttest">
+      <div class="sub-tabs" data-subgroup="tt-mode">
+        <button class="sub-tab active" data-mode="tt-one">One‑Sample</button>
+        <button class="sub-tab" data-mode="tt-two">Two‑Sample (independent)</button>
+      </div>
+
+      <div class="calc-mode active" id="tt-one">
+        <div class="field" style="margin-bottom:18px;">
+          <label>Sample data <span class="hint">comma/space/newline separated</span></label>
+          <textarea id="tt1Input" placeholder="e.g. 101, 98, 105, 99, 103">101, 98, 105, 99, 103, 107, 96, 100</textarea>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Hypothesised population mean (μ₀)</label><input type="number" id="tt1_mu0" value="100" step="0.1"></div>
+          <div class="field">
+            <label>Significance level (α)</label>
+            <select id="tt1_alpha">
+              <option value="0.10">0.10</option>
+              <option value="0.05" selected>0.05</option>
+              <option value="0.01">0.01</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcTTestOne()">Run One‑Sample t‑test</button>
+        <div class="result-box hidden" id="tt1_result"></div>
+      </div>
+
+      <div class="calc-mode" id="tt-two">
+        <div class="form-grid">
+          <div class="field">
+            <label>Group 1 data</label>
+            <textarea id="tt2_g1" placeholder="e.g. 12,14,15,11">12, 14, 15, 11, 13, 16, 10</textarea>
+          </div>
+          <div class="field">
+            <label>Group 2 data</label>
+            <textarea id="tt2_g2" placeholder="e.g. 18,20,17,19">18, 20, 17, 19, 21, 16, 22</textarea>
+          </div>
+        </div>
+        <div class="field" style="max-width:220px;">
+          <label>Significance level (α)</label>
+          <select id="tt2_alpha">
+            <option value="0.10">0.10</option>
+            <option value="0.05" selected>0.05</option>
+            <option value="0.01">0.01</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="calcTTestTwo()">Run Two‑Sample t‑test</button>
+        <div class="result-box hidden" id="tt2_result"></div>
+      </div>
+    </div>
+
+    <!-- Chi-square -->
+    <div class="tool-panel" id="sc-chi">
+      <p style="color:var(--muted);font-size:.9rem;margin-top:0;">Enter a 2×2 contingency table (e.g. exposed/unexposed vs. disease/no disease).</p>
+      <div class="form-grid">
+        <div class="field"><label>Cell a <span class="hint">Group 1, Outcome +</span></label><input type="number" id="chi_a" value="30" min="0"></div>
+        <div class="field"><label>Cell b <span class="hint">Group 1, Outcome −</span></label><input type="number" id="chi_b" value="10" min="0"></div>
+        <div class="field"><label>Cell c <span class="hint">Group 2, Outcome +</span></label><input type="number" id="chi_c" value="15" min="0"></div>
+        <div class="field"><label>Cell d <span class="hint">Group 2, Outcome −</span></label><input type="number" id="chi_d" value="25" min="0"></div>
+      </div>
+      <button class="btn btn-primary" onclick="calcChiSquare()">Run Chi‑square Test</button>
+      <div class="result-box hidden" id="chi_result"></div>
+    </div>
+
+    <p class="disclaimer">Educational tool for quick exploratory analysis — not a substitute for full statistical software (R, STATA, SAS) for publication‑grade results.</p>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    &copy; <span id="year"></span> Sinthanai Selvan Palanisamy · Biostatistics &amp; Epidemiology ·
+    <a href="mailto:sinthanaibiostat@gmail.com">sinthanaibiostat@gmail.com</a>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/calculators.js"></script>
+</body>
+</html>
