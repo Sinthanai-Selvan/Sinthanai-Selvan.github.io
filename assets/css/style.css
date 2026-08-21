@@ -445,6 +445,13 @@ h1, h2, h3, h4 {
 }
 .site-footer a { color: #cfe0ef; }
 
+.visitor-badge {
+  display: block;
+  margin: 10px auto 0;
+  height: 20px;
+  opacity: .9;
+}
+
 /* ---------- Resources page ---------- */
 .resource-hero {
   background: linear-gradient(160deg, var(--navy-900), var(--navy-700));
