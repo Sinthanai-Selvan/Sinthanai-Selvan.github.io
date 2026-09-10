@@ -429,11 +429,13 @@ function calcChiSquare() {
 
 /* ==================== CONFIDENCE INTERVALS ==================== */
 
-function ciRangeHTML(label, low, high, point, note) {
+function ciRangeHTML(label, low, high, point, note, unit) {
+  var mult = unit === "%" ? 100 : 1;
+  var suffix = unit === "%" ? "%" : "";
   return (
     '<div class="result-label">' + label + '</div>' +
-    '<div class="result-figure">[' + fmt(low) + ', ' + fmt(high) + ']</div>' +
-    '<div class="result-note">Point estimate: ' + fmt(point) + '. ' + note + '</div>'
+    '<div class="result-figure">[' + fmt(low * mult) + suffix + ', ' + fmt(high * mult) + suffix + ']</div>' +
+    '<div class="result-note">Point estimate: ' + fmt(point * mult) + suffix + '. ' + note + '</div>'
   );
 }
 
@@ -479,10 +481,47 @@ function calcCIMeanSummary() {
   ));
 }
 
+function radioValue(name) {
+  var els = document.getElementsByName(name);
+  for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
+  return null;
+}
+
+// Wilson score interval for a single proportion. Returns {low, high}.
+function wilsonInterval(x, n, z) {
+  var phat = x / n;
+  var z2 = z * z;
+  var denom = 1 + z2 / n;
+  var center = phat + z2 / (2 * n);
+  var adj = z * Math.sqrt((phat * (1 - phat)) / n + z2 / (4 * n * n));
+  return { low: (center - adj) / denom, high: (center + adj) / denom };
+}
+
+// Agresti–Coull interval for a single proportion. Returns {low, high}.
+function agrestiCoullInterval(x, n, z) {
+  var z2 = z * z;
+  var nTilde = n + z2;
+  var pTilde = (x + z2 / 2) / nTilde;
+  var se = Math.sqrt((pTilde * (1 - pTilde)) / nTilde);
+  return { low: pTilde - z * se, high: pTilde + z * se };
+}
+
+// Newcombe / MOVER combination of two independent single-proportion
+// intervals into an interval for their difference (p1 - p2).
+function moverDiff(p1, low1, high1, p2, low2, high2) {
+  var diff = p1 - p2;
+  var low = diff - Math.sqrt(Math.pow(p1 - low1, 2) + Math.pow(high2 - p2, 2));
+  var high = diff + Math.sqrt(Math.pow(high1 - p1, 2) + Math.pow(p2 - low2, 2));
+  return { low: low, high: high };
+}
+
 function calcCIProp() {
   var x = parseFloat(document.getElementById("ciP_x").value);
   var n = parseFloat(document.getElementById("ciP_n").value);
   var conf = document.getElementById("ciP_conf").value;
+  var method = radioValue("ciP_method") || "wald";
+  var units = radioValue("ciP_units") || "percent";
+  var unit = units === "percent" ? "%" : "";
 
   if (!(n > 0) || x < 0 || x > n) {
     showBox("ciP_result", '<div class="result-note">Please enter a valid number of events (0 ≤ x ≤ n).</div>');
@@ -490,13 +529,30 @@ function calcCIProp() {
   }
   var phat = x / n;
   var z = zTwoSidedFromConfidence(conf);
-  var se = Math.sqrt((phat * (1 - phat)) / n);
-  var margin = z * se;
+  var low, high, methodLabel, note;
+
+  if (method === "wilson") {
+    var wi = wilsonInterval(x, n, z);
+    low = wi.low; high = wi.high;
+    methodLabel = "Wilson Score";
+    note = "n = " + n + ", z = " + z + ".";
+  } else if (method === "agresti") {
+    var ac = agrestiCoullInterval(x, n, z);
+    low = ac.low; high = ac.high;
+    methodLabel = "Agresti–Coull";
+    note = "n = " + n + ", z = " + z + ".";
+  } else {
+    var se = Math.sqrt((phat * (1 - phat)) / n);
+    var margin = z * se;
+    low = Math.max(0, phat - margin);
+    high = Math.min(1, phat + margin);
+    methodLabel = "Wald";
+    note = "n = " + n + ", z = " + z + ", margin of error = " + fmt(margin * 100) + " percentage points.";
+  }
 
   showBox("ciP_result", ciRangeHTML(
-    (conf * 100) + "% Confidence Interval for the Proportion",
-    Math.max(0, phat - margin), Math.min(1, phat + margin), phat,
-    "n = " + n + ", z = " + z + ", margin of error = " + fmt(margin) + "."
+    (conf * 100) + "% Confidence Interval for the Proportion (" + methodLabel + ")",
+    low, high, phat, note, unit
   ));
 }
 
@@ -533,6 +589,9 @@ function calcCIDiffProps() {
   var x2 = parseFloat(document.getElementById("ciDP_x2").value);
   var n2 = parseFloat(document.getElementById("ciDP_n2").value);
   var conf = document.getElementById("ciDP_conf").value;
+  var method = radioValue("ciDP_method") || "wald";
+  var units = radioValue("ciDP_units") || "percent";
+  var unit = units === "percent" ? "%" : "";
 
   if (!(n1 > 0) || !(n2 > 0) || x1 < 0 || x1 > n1 || x2 < 0 || x2 > n2) {
     showBox("ciDP_result", '<div class="result-note">Please enter valid event counts (0 ≤ x ≤ n) for both groups.</div>');
@@ -540,13 +599,93 @@ function calcCIDiffProps() {
   }
   var p1 = x1 / n1, p2 = x2 / n2;
   var z = zTwoSidedFromConfidence(conf);
-  var se = Math.sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2);
   var diff = p1 - p2;
-  var margin = z * se;
+  var low, high, methodLabel, note;
+
+  if (method === "wilson") {
+    var w1 = wilsonInterval(x1, n1, z), w2 = wilsonInterval(x2, n2, z);
+    var mw = moverDiff(p1, w1.low, w1.high, p2, w2.low, w2.high);
+    low = Math.max(-1, mw.low); high = Math.min(1, mw.high);
+    methodLabel = "Wilson / Newcombe";
+    note = "z = " + z + ".";
+  } else if (method === "agresti") {
+    var a1 = agrestiCoullInterval(x1, n1, z), a2 = agrestiCoullInterval(x2, n2, z);
+    var ma = moverDiff(p1, a1.low, a1.high, p2, a2.low, a2.high);
+    low = Math.max(-1, ma.low); high = Math.min(1, ma.high);
+    methodLabel = "Agresti–Coull / MOVER";
+    note = "z = " + z + ".";
+  } else {
+    var se = Math.sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2);
+    var margin = z * se;
+    low = Math.max(-1, diff - margin); high = Math.min(1, diff + margin);
+    methodLabel = "Wald";
+    note = "z = " + z + ", margin of error = " + fmt(margin * 100) + " percentage points.";
+  }
 
   showBox("ciDP_result", ciRangeHTML(
-    (conf * 100) + "% Confidence Interval for the Difference of Proportions (Group 1 − Group 2)",
-    Math.max(-1, diff - margin), Math.min(1, diff + margin), diff,
-    "z = " + z + ", margin of error = " + fmt(margin) + "."
+    (conf * 100) + "% Confidence Interval for the Difference of Proportions (" + methodLabel + ")",
+    low, high, diff, note, unit
   ));
+}
+
+/* ---- Odds Ratio / Risk Ratio CIs (log-scale Wald, from a 2x2 table) ---- */
+
+function haldaneCorrect(a, b, c, d) {
+  if (a === 0 || b === 0 || c === 0 || d === 0) {
+    return { a: a + 0.5, b: b + 0.5, c: c + 0.5, d: d + 0.5, corrected: true };
+  }
+  return { a: a, b: b, c: c, d: d, corrected: false };
+}
+
+function calcCIOddsRatio() {
+  var a0 = parseFloat(document.getElementById("ciOR_a").value) || 0;
+  var b0 = parseFloat(document.getElementById("ciOR_b").value) || 0;
+  var c0 = parseFloat(document.getElementById("ciOR_c").value) || 0;
+  var d0 = parseFloat(document.getElementById("ciOR_d").value) || 0;
+  var conf = document.getElementById("ciOR_conf").value;
+
+  if (a0 + b0 + c0 + d0 <= 0) {
+    showBox("ciOR_result", '<div class="result-note">Please enter valid cell counts.</div>');
+    return;
+  }
+  var cc = haldaneCorrect(a0, b0, c0, d0);
+  var or = (cc.a * cc.d) / (cc.b * cc.c);
+  var seLn = Math.sqrt(1 / cc.a + 1 / cc.b + 1 / cc.c + 1 / cc.d);
+  var z = zTwoSidedFromConfidence(conf);
+  var lnOR = Math.log(or);
+  var low = Math.exp(lnOR - z * seLn);
+  var high = Math.exp(lnOR + z * seLn);
+
+  showBox("ciOR_result",
+    '<div class="result-label">' + (conf * 100) + '% Confidence Interval for the Odds Ratio</div>' +
+    '<div class="result-figure">[' + fmt(low, 3) + ', ' + fmt(high, 3) + ']</div>' +
+    '<div class="result-note">Point estimate: OR = ' + fmt(or, 3) + '. z = ' + z + '.' +
+    (cc.corrected ? ' A 0.5 continuity correction was applied (a zero cell was present).' : '') + '</div>');
+}
+
+function calcCIRiskRatio() {
+  var a0 = parseFloat(document.getElementById("ciRR_a").value) || 0;
+  var b0 = parseFloat(document.getElementById("ciRR_b").value) || 0;
+  var c0 = parseFloat(document.getElementById("ciRR_c").value) || 0;
+  var d0 = parseFloat(document.getElementById("ciRR_d").value) || 0;
+  var conf = document.getElementById("ciRR_conf").value;
+
+  if (a0 + b0 + c0 + d0 <= 0) {
+    showBox("ciRR_result", '<div class="result-note">Please enter valid cell counts.</div>');
+    return;
+  }
+  var cc = haldaneCorrect(a0, b0, c0, d0);
+  var n1 = cc.a + cc.b, n2 = cc.c + cc.d;
+  var rr = (cc.a / n1) / (cc.c / n2);
+  var seLn = Math.sqrt(1 / cc.a - 1 / n1 + 1 / cc.c - 1 / n2);
+  var z = zTwoSidedFromConfidence(conf);
+  var lnRR = Math.log(rr);
+  var low = Math.exp(lnRR - z * seLn);
+  var high = Math.exp(lnRR + z * seLn);
+
+  showBox("ciRR_result",
+    '<div class="result-label">' + (conf * 100) + '% Confidence Interval for the Risk Ratio</div>' +
+    '<div class="result-figure">[' + fmt(low, 3) + ', ' + fmt(high, 3) + ']</div>' +
+    '<div class="result-note">Point estimate: RR = ' + fmt(rr, 3) + '. z = ' + z + '.' +
+    (cc.corrected ? ' A 0.5 continuity correction was applied (a zero cell was present).' : '') + '</div>');
 }
