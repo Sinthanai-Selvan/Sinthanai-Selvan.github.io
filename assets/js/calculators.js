@@ -89,6 +89,20 @@ function tTwoTailedP(t, df) {
   return betainc(x, df / 2, 0.5);
 }
 
+// Two-sided critical t value (inverse of tTwoTailedP) via bisection.
+// tTwoTailedP(t, df) is monotonically decreasing in t for t >= 0, so a
+// simple bisection search is fast and accurate to well beyond what a
+// planning/teaching tool needs.
+function tCriticalValue(alpha, df) {
+  var lo = 0, hi = 1000;
+  for (var i = 0; i < 200; i++) {
+    var mid = (lo + hi) / 2;
+    var p = tTwoTailedP(mid, df);
+    if (p > alpha) { lo = mid; } else { hi = mid; }
+  }
+  return (lo + hi) / 2;
+}
+
 function parseNumbers(text) {
   return text
     .split(/[\s,;]+/)
@@ -411,4 +425,128 @@ function calcChiSquare() {
       '<div class="stat-tile"><div class="v">' + (isNaN(rr) ? "—" : fmt(rr, 3)) + '</div><div class="k">Risk Ratio</div></div>' +
     '</div>' +
     '<div class="result-note">' + sigWord(p, 0.05) + ' df = 1.</div>');
+}
+
+/* ==================== CONFIDENCE INTERVALS ==================== */
+
+function ciRangeHTML(label, low, high, point, note) {
+  return (
+    '<div class="result-label">' + label + '</div>' +
+    '<div class="result-figure">[' + fmt(low) + ', ' + fmt(high) + ']</div>' +
+    '<div class="result-note">Point estimate: ' + fmt(point) + '. ' + note + '</div>'
+  );
+}
+
+function calcCIMeanData() {
+  var data = parseNumbers(document.getElementById("ciMD_data").value);
+  var conf = document.getElementById("ciMD_conf").value;
+  if (data.length < 2) {
+    showBox("ciMD_result", '<div class="result-note">Please enter at least two numeric values.</div>');
+    return;
+  }
+  var n = data.length;
+  var m = mean(data);
+  var sd = Math.sqrt(sampleVariance(data));
+  var se = sd / Math.sqrt(n);
+  var df = n - 1;
+  var alpha = (1 - Number(conf)).toFixed(2);
+  var t = tCriticalValue(alpha, df);
+  var margin = t * se;
+
+  showBox("ciMD_result", ciRangeHTML(
+    (conf * 100) + "% Confidence Interval for the Mean",
+    m - margin, m + margin, m,
+    "n = " + n + ", SD = " + fmt(sd) + ", t(" + df + ") = " + fmt(t, 3) + ", margin of error = " + fmt(margin) + "."
+  ));
+}
+
+function calcCIMeanSummary() {
+  var m = parseFloat(document.getElementById("ciMS_mean").value);
+  var sd = parseFloat(document.getElementById("ciMS_sd").value);
+  var n = parseFloat(document.getElementById("ciMS_n").value);
+  var conf = document.getElementById("ciMS_conf").value;
+
+  var se = sd / Math.sqrt(n);
+  var df = n - 1;
+  var alpha = (1 - Number(conf)).toFixed(2);
+  var t = tCriticalValue(alpha, df);
+  var margin = t * se;
+
+  showBox("ciMS_result", ciRangeHTML(
+    (conf * 100) + "% Confidence Interval for the Mean",
+    m - margin, m + margin, m,
+    "n = " + n + ", t(" + df + ") = " + fmt(t, 3) + ", margin of error = " + fmt(margin) + "."
+  ));
+}
+
+function calcCIProp() {
+  var x = parseFloat(document.getElementById("ciP_x").value);
+  var n = parseFloat(document.getElementById("ciP_n").value);
+  var conf = document.getElementById("ciP_conf").value;
+
+  if (!(n > 0) || x < 0 || x > n) {
+    showBox("ciP_result", '<div class="result-note">Please enter a valid number of events (0 ≤ x ≤ n).</div>');
+    return;
+  }
+  var phat = x / n;
+  var z = zTwoSidedFromConfidence(conf);
+  var se = Math.sqrt((phat * (1 - phat)) / n);
+  var margin = z * se;
+
+  showBox("ciP_result", ciRangeHTML(
+    (conf * 100) + "% Confidence Interval for the Proportion",
+    Math.max(0, phat - margin), Math.min(1, phat + margin), phat,
+    "n = " + n + ", z = " + z + ", margin of error = " + fmt(margin) + "."
+  ));
+}
+
+function calcCIDiffMeans() {
+  var g1 = parseNumbers(document.getElementById("ciDM_g1").value);
+  var g2 = parseNumbers(document.getElementById("ciDM_g2").value);
+  var conf = document.getElementById("ciDM_conf").value;
+
+  if (g1.length < 2 || g2.length < 2) {
+    showBox("ciDM_result", '<div class="result-note">Please enter at least two numeric values in each group.</div>');
+    return;
+  }
+  var n1 = g1.length, n2 = g2.length;
+  var m1 = mean(g1), m2 = mean(g2);
+  var v1 = sampleVariance(g1), v2 = sampleVariance(g2);
+  var se = Math.sqrt(v1 / n1 + v2 / n2);
+  var df = Math.pow(v1 / n1 + v2 / n2, 2) /
+    ((Math.pow(v1 / n1, 2) / (n1 - 1)) + (Math.pow(v2 / n2, 2) / (n2 - 1)));
+  var alpha = (1 - Number(conf)).toFixed(2);
+  var t = tCriticalValue(alpha, df);
+  var diff = m1 - m2;
+  var margin = t * se;
+
+  showBox("ciDM_result", ciRangeHTML(
+    (conf * 100) + "% Confidence Interval for the Difference of Means (Group 1 − Group 2)",
+    diff - margin, diff + margin, diff,
+    "df (Welch) = " + fmt(df, 2) + ", t = " + fmt(t, 3) + ", margin of error = " + fmt(margin) + "."
+  ));
+}
+
+function calcCIDiffProps() {
+  var x1 = parseFloat(document.getElementById("ciDP_x1").value);
+  var n1 = parseFloat(document.getElementById("ciDP_n1").value);
+  var x2 = parseFloat(document.getElementById("ciDP_x2").value);
+  var n2 = parseFloat(document.getElementById("ciDP_n2").value);
+  var conf = document.getElementById("ciDP_conf").value;
+
+  if (!(n1 > 0) || !(n2 > 0) || x1 < 0 || x1 > n1 || x2 < 0 || x2 > n2) {
+    showBox("ciDP_result", '<div class="result-note">Please enter valid event counts (0 ≤ x ≤ n) for both groups.</div>');
+    return;
+  }
+  var p1 = x1 / n1, p2 = x2 / n2;
+  var z = zTwoSidedFromConfidence(conf);
+  var se = Math.sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2);
+  var diff = p1 - p2;
+  var margin = z * se;
+
+  showBox("ciDP_result", ciRangeHTML(
+    (conf * 100) + "% Confidence Interval for the Difference of Proportions (Group 1 − Group 2)",
+    Math.max(-1, diff - margin), Math.min(1, diff + margin), diff,
+    "z = " + z + ", margin of error = " + fmt(margin) + "."
+  ));
 }
